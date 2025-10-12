@@ -4,7 +4,7 @@ kind: Kustomization
 # Helm chart'ı GitHub'dan çek
 helmCharts:
   - name: mlops-onboarding
-    repo: https://YOUR_ORG.github.io/helm-charts
+    repo: https://dogukan1047.github.io/mlopsOnboardingHelmChart
     version: 0.1.0
     releaseName: ${PROJECT_NAME}-dev
     namespace: ${PROJECT_NAME}
