@@ -1,18 +1,17 @@
 # Interactive Development Environment Values
 # Bu dosya kustomization.yaml tarafından kullanılır
-
 projectName: "{{ cookiecutter.project_name }}"
 namespace: "{{ cookiecutter.project_name }}"
 
 image:
   repository: "{{ cookiecutter.docker_registry }}/{{ cookiecutter.base_image_type }}"
-  tag: "latest" 
+  tag: "latest"
   pullPolicy: Always
   pullSecrets: []
 
 # Interactive Ortam Ayarları
 interactive:
-  enabled: true
+  enabled: {% if cookiecutter.mlflow_enabled == "true" %}true{% else %}false{% endif %}
   replicas: 1
   command:
     - "start-notebook.sh"
@@ -25,37 +24,33 @@ interactive:
       value: "yes"
     - name: GRANT_SUDO
       value: "yes"
-    {% if cookiecutter.mlflow_enabled == "true" -%}
+{% if cookiecutter.mlflow_enabled == "true" %}
     - name: MLFLOW_TRACKING_URI
       value: "http://mlflow-server:5000"
-    {% endif -%}
-    {% if cookiecutter.use_gpu == "true" -%}
+{% endif %}
+{% if cookiecutter.use_gpu == "true" %}
     - name: NVIDIA_VISIBLE_DEVICES
       value: "all"
-    {% endif -%}
+{% endif %}
 
 # Production Training Kapalı
 productionTraining:
-  enabled: false
+  enabled: {% if cookiecutter.deploy_enabled == "true" %}true{% else %}false{% endif %}
 
 # Resource Limits
 resources:
   limits:
     cpu: "{{ cookiecutter.cpu_limit }}"
     memory: "{{ cookiecutter.memory_limit }}"
-    {% if cookiecutter.use_gpu == "true" -%}
+{% if cookiecutter.use_gpu == "true" %}
     nvidia.com/gpu: "{{ cookiecutter.gpu_count }}"
-    {% else -%}
-    nvidia.com/gpu: "0"
-    {% endif -%}
+{% endif %}
   requests:
     cpu: "{{ cookiecutter.cpu_request }}"
     memory: "{{ cookiecutter.memory_request }}"
-    {% if cookiecutter.use_gpu == "true" -%}
+{% if cookiecutter.use_gpu == "true" %}
     nvidia.com/gpu: "{{ cookiecutter.gpu_count }}"
-    {% else -%}
-    nvidia.com/gpu: "0"
-    {% endif -%}
+{% endif %}
 
 # Storage Configuration
 storage:
@@ -72,22 +67,22 @@ service:
   nodePort: ""  # Otomatik atanacak
 
 # Node Selector
-{% if cookiecutter.use_gpu == "true" -%}
+{% if cookiecutter.use_gpu == "true" %}
 nodeSelector:
   nvidia.com/gpu: "true"
-{% else -%}
+{% else %}
 nodeSelector: {}
-{% endif -%}
+{% endif %}
 
 # Tolerations
-{% if cookiecutter.use_gpu == "true" -%}
+{% if cookiecutter.use_gpu == "true" %}
 tolerations:
   - key: "nvidia.com/gpu"
     operator: "Exists"
     effect: "NoSchedule"
-{% else -%}
+{% else %}
 tolerations: []
-{% endif -%}
+{% endif %}
 
 # Affinity
 affinity: {}
