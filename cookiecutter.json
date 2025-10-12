@@ -1,6 +1,11 @@
 {
-  "project_name": "my_llm_project",
-  "description": "An LLM-based project",
+  "project_name": "MyLLMProject",
+  "description": "A large language model project",
   "author": "Your Name",
-  "project_type": "llm"
+  "project_type": "llm",
+  "docker_registry": "dogukanpolatel",
+  "base_image_type": "jupyter",
+  "use_gpu": true,
+  "gpu_count": 1,
+  "mlflow_enabled": true
 }
