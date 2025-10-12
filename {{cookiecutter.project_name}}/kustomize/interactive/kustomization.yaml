@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Helm chart'ı GitHub'dan çek
+helmCharts:
+  - name: mlops-onboarding
+    repo: https://YOUR_ORG.github.io/helm-charts
+    version: 0.1.0
+    releaseName: ${PROJECT_NAME}-dev
+    namespace: ${PROJECT_NAME}
+    valuesFile: values-interactive.yaml
+    includeCRDs: false
+
+# Namespace
+namespace: ${PROJECT_NAME}
+
+# Labels
+commonLabels:
+  environment: development
+  deployment-type: interactive
+  project: ${PROJECT_NAME}
+
+# Annotations
+commonAnnotations:
+  managed-by: kustomize
+  chart-source: github-helm-repo

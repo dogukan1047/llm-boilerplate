@@ -1,0 +1,93 @@
+# Interactive Development Environment Values
+# Bu dosya kustomization.yaml tarafından kullanılır
+
+projectName: "{{ cookiecutter.project_name }}"
+namespace: "{{ cookiecutter.project_name }}"
+
+image:
+  repository: "{{ cookiecutter.docker_registry }}/{{ cookiecutter.base_image_type }}"
+  tag: "latest" 
+  pullPolicy: Always
+  pullSecrets: []
+
+# Interactive Ortam Ayarları
+interactive:
+  enabled: true
+  replicas: 1
+  command:
+    - "start-notebook.sh"
+  args:
+    - "--NotebookApp.token=''"
+    - "--NotebookApp.password=''"
+    - "--NotebookApp.allow_origin='*'"
+  env:
+    - name: JUPYTER_ENABLE_LAB
+      value: "yes"
+    - name: GRANT_SUDO
+      value: "yes"
+    {% if cookiecutter.mlflow_enabled == "true" -%}
+    - name: MLFLOW_TRACKING_URI
+      value: "http://mlflow-server:5000"
+    {% endif -%}
+    {% if cookiecutter.use_gpu == "true" -%}
+    - name: NVIDIA_VISIBLE_DEVICES
+      value: "all"
+    {% endif -%}
+
+# Production Training Kapalı
+productionTraining:
+  enabled: false
+
+# Resource Limits
+resources:
+  limits:
+    cpu: "{{ cookiecutter.cpu_limit }}"
+    memory: "{{ cookiecutter.memory_limit }}"
+    {% if cookiecutter.use_gpu == "true" -%}
+    nvidia.com/gpu: "{{ cookiecutter.gpu_count }}"
+    {% else -%}
+    nvidia.com/gpu: "0"
+    {% endif -%}
+  requests:
+    cpu: "{{ cookiecutter.cpu_request }}"
+    memory: "{{ cookiecutter.memory_request }}"
+    {% if cookiecutter.use_gpu == "true" -%}
+    nvidia.com/gpu: "{{ cookiecutter.gpu_count }}"
+    {% else -%}
+    nvidia.com/gpu: "0"
+    {% endif -%}
+
+# Storage Configuration
+storage:
+  size: "{{ cookiecutter.storage_size }}"
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  mountPath: "/home/jovyan/work"
+
+# Service Configuration
+service:
+  type: NodePort
+  port: 8888
+  nodePort: ""  # Otomatik atanacak
+
+# Node Selector
+{% if cookiecutter.use_gpu == "true" -%}
+nodeSelector:
+  nvidia.com/gpu: "true"
+{% else -%}
+nodeSelector: {}
+{% endif -%}
+
+# Tolerations
+{% if cookiecutter.use_gpu == "true" -%}
+tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"
+{% else -%}
+tolerations: []
+{% endif -%}
+
+# Affinity
+affinity: {}

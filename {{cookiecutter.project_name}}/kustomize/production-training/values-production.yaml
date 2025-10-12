@@ -1,0 +1,117 @@
+projectName: "{{ cookiecutter.project_name }}"
+namespace: "{{ cookiecutter.project_name }}"
+
+image:
+  repository: "{{ cookiecutter.docker_registry }}/{{ cookiecutter.base_image_type }}"
+  tag: "latest"
+  pullPolicy: Always
+  pullSecrets: []
+
+interactive:
+  enabled: false
+
+productionTraining:
+  enabled: true
+  command:
+    - "python"
+    - "/app/src/train.py"
+  args:
+    - "--config=/app/config/training_config.yaml"
+  env:
+    - name: ENVIRONMENT
+      value: "production"
+    {% if cookiecutter.mlflow_enabled == "true" -%}
+    - name: MLFLOW_TRACKING_URI
+      value: "http://mlflow-server:5000"
+    - name: MLFLOW_EXPERIMENT_NAME
+      value: "{{ cookiecutter.project_name }}"
+    {% endif -%}
+    - name: MODEL_OUTPUT_PATH
+      value: "/data/models"
+    - name: DATA_PATH
+      value: "/data/datasets"
+    {% if cookiecutter.use_gpu == "true" -%}
+    - name: CUDA_VISIBLE_DEVICES
+      value: "0,1"
+    - name: NVIDIA_VISIBLE_DEVICES
+      value: "all"
+    {% endif -%}
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400 
+  restartPolicy: Never
+
+resources:
+  limits:
+    cpu: "{{ cookiecutter.training_cpu_limit | default('8') }}"
+    memory: "{{ cookiecutter.training_memory_limit | default('32Gi') }}"
+    {% if cookiecutter.use_gpu == "true" -%}
+    nvidia.com/gpu: "{{ cookiecutter.training_gpu_count | default('2') }}"
+    {% else -%}
+    nvidia.com/gpu: "0"
+    {% endif -%}
+  requests:
+    cpu: "{{ cookiecutter.training_cpu_request | default('4') }}"
+    memory: "{{ cookiecutter.training_memory_request | default('16Gi') }}"
+    {% if cookiecutter.use_gpu == "true" -%}
+    nvidia.com/gpu: "{{ cookiecutter.training_gpu_count | default('2') }}"
+    {% else -%}
+    nvidia.com/gpu: "0"
+    {% endif -%}
+
+# Storage Configuration (Training için daha büyük)
+storage:
+  size: "{{ cookiecutter.training_storage_size | default('100Gi') }}"
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: "{{ cookiecutter.storage_class | default('') }}"
+  mountPath: "/data"
+
+# Service Ayarları (Training için gerekli değil ama Helm chart gerektiriyorsa)
+service:
+  type: ClusterIP
+  port: 8080
+
+# Node Selector (GPU node'ları için)
+{% if cookiecutter.use_gpu == "true" -%}
+nodeSelector:
+  nvidia.com/gpu: "true"
+  node-type: "gpu-large"
+{% else -%}
+nodeSelector: {}
+{% endif -%}
+
+# Tolerations (GPU node'larına schedule için)
+{% if cookiecutter.use_gpu == "true" -%}
+tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"
+  - key: "gpu-workload"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+{% else -%}
+tolerations: []
+{% endif -%}
+
+# Affinity (Tercih edilen GPU tipi)
+{% if cookiecutter.use_gpu == "true" -%}
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: gpu-type
+              operator: In
+              values:
+                - nvidia-tesla-v100
+                - nvidia-a100
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: nvidia.com/gpu
+              operator: Exists
+{% else -%}
+affinity: {}
+{% endif -%}
